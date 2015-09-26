@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html ng-app="babyTrak">
+<head lang="en">
+	<meta charset="UTF-8">
+	<title>BabyTrak</title>
+
+	<link rel="stylesheet" href="css/main.css" />
+
+	<!-- jQuery -->
+	<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js'></script>
+
+	<!-- AngularJS -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.3.15/angular.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.3.15/angular-route.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.3.15/angular-resource.min.js"></script>
+
+	<!-- Firebase -->
+	<script src='https://cdn.firebase.com/js/client/2.2.1/firebase.js'></script>
+
+	<!-- AngularFire -->
+	<script src="https://cdn.firebase.com/libs/angularfire/1.0.0/angularfire.min.js"></script>
+
+</head>
+<body ng-controller="applicationController">
+
+	<header>
+		<div class="pull-right user-info" ng-show="isLoggedIn">
+			<img ng-src="{{currentUser.thumbnail}}" />
+			<div class="name">{{currentUser.displayName}}</div>
+		</div>
+		<div class="logo">{{appTitle}}</div>
+
+	</header>
+	<nav ng-controller="navController">
+		<ul>
+			<li ng-class="isActive('home')"><a href="#/">Home</a></li>
+			<li ng-class="isActive('feedings')"><a href="#/feedings">Feedings</a></li>
+			<li>Sleeps</li>
+			<li>Diapers</li>
+			<li ng-class="isActive('users')"><a href="#/users">Users</a></li>
+			<li ng-class="isActive('babies')"><a href="#/babies">Babies</a></li>
+			<li><a href="#/	" ng-click="logout()">Log out</a></li>
+		</ul>
+	</nav>
+	<main ng-view onload="init()">
+
+	</main>
+	<footer>
+
+
+	</footer>
+
+
+
+
+</body>
+
+<!-- BabyTrak -->
+<script src="js/modules/nhFilters.js"></script>
+<script src="js/babytrak.js"></script>
+</html>

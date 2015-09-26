@@ -1,0 +1,42 @@
+<h1>Babies</h1>
+
+<p>{{controllerName}}</p>
+
+<ul class="list-babies">
+	<li ng-repeat="baby in babies">
+		Name: {{baby.name}}
+		Gender: {{baby.gender}}
+		Born: {{dateFromString(baby.birthDateTime) | date:'MM/dd/yy'}} at {{dateFromString(baby.birthDateTime) | date:'h:mm a'}}
+	</li>
+	<li ng-click="openBabyAddForm()">
+		<div ng-show="!babyAdd">+ Add New Baby</div>
+		<div ng-show="babyAdd">
+			<div>Name: <input type="text" ng-model="newBaby.name" /></div>
+			<div>
+				Gender: <select ng-model="newBaby.gender">
+					<option value="Female">Female</option>
+					<option value="Male">Male</option>
+				</select>
+			</div>
+			<div>
+				Birth Date: {{birthDateTime}}
+				<input type="text" ng-model="newBaby.birthDate" />
+			</div>
+			<div>
+				Birth Time:
+				<input type="text" ng-model="newBaby.birthTime" />
+			</div>
+			<div>
+				<button ng-click="saveNewBaby()">Save</button>
+				<button ng-click="closeBabyAddForm()">Cancel</button>
+			</div>
+
+
+		</div>
+	</li>
+</ul>
+
+<div class="debug-block">
+	NewBaby
+	<pre>{{newBaby | json}}</pre>
+</div>

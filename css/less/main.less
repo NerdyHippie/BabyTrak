@@ -1,0 +1,88 @@
+@import "includes/nhMixins";
+@import "includes/globals";
+@import "includes/nhUniversalBorderBox";
+@import "includes/nhBootstraps";
+
+body {
+	font-family: Calibri, Arial, "sans-serif";
+	color: @black-fade-50;
+	margin: 0;
+	padding: 0;
+	position: relative;
+}
+
+header {
+	width: 100%;
+	background-color: @black;
+	padding: 5px 10px;
+
+	.logo {
+		color: @white;
+		font-size: 2em;
+		font-weight: bold;
+	}
+
+	.user-info {
+		.name {
+			color: @white-fade-75;
+			display: inline-block;
+			position: relative;
+			transform: translateY(-50%);
+			height: 30px;
+			margin-left: 5px;
+		}
+
+		img {
+			.border-radius(19px);
+			max-height: 40px;
+
+		}
+	}
+}
+
+nav {
+	background-color: @black-fade-50;
+	ul {
+		margin: 0;
+		padding: 1px 10px;
+		li {
+			color: @white;
+			display: inline-block;
+			padding: 1px 5px 2px;
+			margin: 0;
+			border-right: 1px solid @white-fade-50;
+
+			a {
+				color: @white;
+				text-decoration: none;
+
+				&:hover {
+					text-decoration: underline;
+				}
+			}
+
+			&.active {
+				background-color: @white-fade-50;
+			}
+		}
+	}
+}
+
+main {
+	padding: 5px 10px;
+	margin-bottom: 50px;
+}
+
+footer {
+	position: fixed;
+	bottom: 0;
+	background-color: @black-fade-50;
+	min-height: 50px;
+	width: 100%;
+}
+
+.debug-block {
+	margin-bottom: 10px;
+	padding: 5px;
+	border: 1px solid @black-fade-50;
+}
