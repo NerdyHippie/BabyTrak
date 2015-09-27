@@ -3,7 +3,7 @@ var usersRef = new Firebase('https://babytrak.firebaseio.com/users');
 var babyRef = new Firebase('https://babytrak.firebaseio.com/babies');
 
 var bt = angular.module("babyTrak", ['firebase','nhUtils','ngRoute','ngResource'])
-	.config(['$routeProvider','$nhLoginProvider',function($routeProvider,$nhLoginProvider) {
+	.config(['$routeProvider',function($routeProvider) {
 		$routeProvider
 			.when('/',{
 				templateUrl: 'partials/home.html'
@@ -25,64 +25,64 @@ var bt = angular.module("babyTrak", ['firebase','nhUtils','ngRoute','ngResource'
 				,selectedHeader: 'babies'
 				,controller: 'babyListController'
 			})
-			.otherwise({ redirectTo: '/' });
-
-		$nhLoginProvider.setFirebaseInstance('babytrak');
-	}])
-	.run(['$nhLogin',function($nhLogin) {
-		var cu = $nhLogin.getUser();
-		console.log('cu',cu);
+			.otherwise({ redirectTo: '/' })
 	}]);
+
+
 
 
 bt.factory('Auth',['$firebaseAuth',function($firebaseAuth) {
 	return $firebaseAuth(ref);
 }]);
-// 7/6/15 - testing extending firebaseObject; added individual User factory
-bt.factory('Users',['$firebaseObject',function($firebaseObject) {
-	var Users = $firebaseObject.$extend({
-		getFullName: function() {
-			console.log('this from Users.getFullName()',this);
-		}
-	});
 
-	return new Users(usersRef);
-}]);
-bt.factory('User',['$firebaseObject',function($firebaseObject) {
-	var User = $firebaseObject.$extend({
-		getFullName: function() {
-			return this.firstName + ' ' + this.lastName;
-			//console.log('this from User.getFullName()',this);
-		}
-		,monkeySee: function(input) {
-			console.log('monkeyDo:',input);
-		}
-	});
+bt.factory('FirebaseData',['$firebaseObject','$firebaseArray',function($firebaseObject,$firebaseArray) {
+	return {
+		getUser: function(userId) {
+			if (userId) {
+				var userObj = $firebaseObject.$extend({
+					$$defaults: {
+						firstName: ''
+						,lastName: ''
+						,email: ''
+					}
+					,getFullName: function() {
+						console.log('this from Users.getFullName()',this, this.firstName + ' ' + this.lastName);
+						return this.firstName + ' ' + this.lastName
+					}
+				});
 
-	return function(userId) {
-		return new User(usersRef.child(userId));
+				return new userObj(ref.child('users').child(userId));
+			} else {
+				return new $firebaseObject(ref.child('users'));
+			}
+
+		}
+		,getBaby: function(babyId) {
+			if (babyId) {
+				var babyObj = $firebaseObject.$extend({
+					$$defaults: {
+						name: ''
+						,gender: ''
+						,birthDateTime: new Date().getTime()
+					}
+				});
+
+				return new babyObj(ref.child('babies').child(babyId));
+			} else {
+				return new $firebaseArray(ref.child('babies'));
+			}
+		}
+		,getBabyParents: function(babyId) {
+			return new $firebaseArray(ref.child('babies').child(babyId).child('parents'));
+		}
+		,getParentBabies: function(parentId) {
+			return new $firebaseArray(ref.child('babies').child(parentId).child('babies'));
+		}
+
 	}
 }]);
 
-bt.factory('Babies',['$firebaseArray',function($firebaseArray) {
-	var Babies = $firebaseArray.$extend({
-		placeholder: function(input) {
-			console.log('placeholder',input);
-		}
-	});
-	return new Babies(babyRef);
-}]);
-bt.factory('Baby',['$firebaseObject',function($firebaseObject) {
-	var Baby = $firebaseObject.$extend({
-		placeholder: function(input) {
-			console.log('placeholder',input);
-		}
-	});
 
-	return function(babyId) {
-		return new Baby(babyRef.child(babyId));
-	}
-}])
 
 bt.controller('navController',['$scope','$route',function($scope,$route) {
 	$scope.isActive = function(item) {
@@ -230,7 +230,7 @@ bt.provider('$nhLogin',function $nhLoginProvider() {
 	}];
 });
 
-bt.controller('applicationController',['$scope','Auth','$location','Users','$firebaseObject',function($scope,Auth,$location,Users,$firebaseObject) {
+bt.controller('applicationController',['$scope','Auth','$location','FirebaseData',function($scope,Auth,$location,FirebaseData) {
 	$scope.controllerName = 'applicationController';
 
 	$scope.appTitle = "BabyTrak";
@@ -239,7 +239,7 @@ bt.controller('applicationController',['$scope','Auth','$location','Users','$fir
 	$scope.isLoggedIn = false;
 
 	$scope.authObj = Auth;
-	$scope.users = Users;
+	$scope.users = FirebaseData.getUser();
 
 	/*
 	* I am basically an event listener that response to changes in the auth object.  I provide a single, asynchronous place to put user-login logic.
@@ -331,15 +331,7 @@ bt.controller('applicationController',['$scope','Auth','$location','Users','$fir
 	};
 
 	/*  Deprecated below this line */
-	$scope.doesUserExistInFirebase = function(uid) {
-		var localRef = new Firebase('https://babytrak.firebaseio.com/users/' + uid);
-		var user = $firebaseObject(localRef);
 
-		user.$loaded().then(function() {
-			return !user.hasOwnProperty('$value');
-		});
-
-	};
 
 
 
@@ -386,16 +378,29 @@ bt.controller('feedingController',['$scope',function($scope) {
 	};
 }]);
 
-bt.controller('userListController',['$scope','User',function($scope,User) {
+bt.controller('userListController',['$scope','FirebaseData',function($scope,FirebaseData) {
 	$scope.controllerName = "userListController";
 
-	$scope.editUser = function(userId) {
-		console.log('firing editUser',userId);
+	$scope.viewSettings = {
+		page: 'list'
+	};
 
-		User(userId).$loaded().then(function(data) {
+	$scope.showList = function() {
+		$scope.viewSettings.page = 'list';
+	};
+
+	$scope.showUser = function(userId) {
+		FirebaseData.getUser(userId).$loaded().then(function(data) {
+			$scope.selectedUser = data;
+			$scope.viewSettings.page = 'detail';
+		});
+	};
+
+	$scope.editUser = function(userId) {
+		FirebaseData.getUser(userId).$loaded().then(function(data) {
 			console.log('data in then',data);
-			$scope.theUser = data;
-			$scope.showUserEditor = true;
+			$scope.editUser = data;
+			$scope.viewSettings.page = 'edit';
 		}).catch(function(error) {
 			alert("Error loading user.  Check console for details");
 			console.log('Error loading user',error);
@@ -403,13 +408,13 @@ bt.controller('userListController',['$scope','User',function($scope,User) {
 	}
 }]);
 
-bt.controller('babyListController',['$scope','$location','$firebaseArray','Babies',function($scope,$location,$firebaseArray,Babies) {
+bt.controller('babyListController',['$scope','$location','$firebaseArray','FirebaseData',function($scope,$location,$firebaseArray,FirebaseData) {
 	$scope.controllerName = 'babyListController';
 
 	$scope.init = function() {
 		$scope.requireLogin();
 
-		$scope.babies = Babies;
+		$scope.babies = FirebaseData.getBaby();
 	};
 
 	$scope.openBabyAddForm = function() {
@@ -450,7 +455,7 @@ bt.controller('babyListController',['$scope','$location','$firebaseArray','Babie
 
 				try {
 					if (!$scope.newBaby.parents) {
-						$scope.newBaby.parents = new $firebaseArray();
+						$scope.newBaby.parents = FirebaseData.getBabyParents(data.$id);
 					}
 
 					if ($scope.newBaby.parents.$indexFor($scope.currentUser.userId) == -1) {

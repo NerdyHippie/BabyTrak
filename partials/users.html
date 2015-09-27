@@ -2,15 +2,53 @@
 
 <p>{{controllerName}}</p>
 
-<ul class="data-list" id="data-list-users">
-	<li ng-repeat="(userId,user) in users" ng-click="editUser(userId)">
-		{{userId}} - {{user.firstName}} {{user.lastName}}
-	</li>
-</ul>
+<div ng-show="viewSettings.page == 'list'">
+	<div class="container-list">
+		<ul class="data-list" id="data-list-users">
+			<li ng-repeat="(userId,user) in users" ng-click="showUser(userId)">
+				{{userId}} - {{user.firstName}} {{user.lastName}}
+			</li>
+		</ul>
+	</div>
+</div>
 
+<div ng-show="viewSettings.page == 'detail'">
+	<div class="container-detail">
+		<button class="pull-right" ng-click="showList()">Back to Users list</button>
 
-<div class="editor-container" ng-show="showUserEditor">
-	<h2>Edit User</h2>
+		<h2>User Info</h2>
 
-	<pre>{{theUser | json}}</pre>
+		<table class="table-details">
+			<tbody>
+				<tr>
+					<th>ID: </th>
+					<td>{{selectedUser.$id}}</td>
+				</tr>
+				<tr>
+					<th>First Name: </th>
+					<td>{{selectedUser.firstName}}</td>
+				</tr>
+				<tr>
+					<th>Last Name: </th>
+					<td>{{selectedUser.lastName}}</td>
+				</tr>
+				<tr>
+					<th>Email: </th>
+					<td>{{selectedUser.email}}</td>
+				</tr>
+				<tr>
+					<th>Thumbnail: </th>
+					<td>{{selectedUser.thumbnail}}</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+</div>
+
+<div ng-show="viewSettings.page == 'edit'">
+	<div class="container-editor">
+		<h2>Edit User Info</h2>
+
+		<pre>{{theUser | json}}</pre>
+	</div>
 </div>

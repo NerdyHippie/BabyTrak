@@ -68,6 +68,30 @@ nav {
 	}
 }
 
+.table-details {
+	border-collapse: collapse;
+	tr {
+		border-bottom: 1px solid @black-fade-50;
+
+		&:last-child {
+			border-bottom: 0;
+		}
+		&:nth-child(even) {
+			background-color: @black-fade-25;
+		}
+	}
+	th {
+		text-align: left;
+		white-space: nowrap;
+	}
+	th,td {
+		vertical-align: top;
+		padding: 3px 5px;
+		margin: 0px;
+
+	}
+}
+
 main {
 	padding: 5px 10px;
 	margin-bottom: 50px;
