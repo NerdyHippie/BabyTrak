@@ -2,13 +2,13 @@ var ref = new Firebase("https://babytrak.firebaseio.com");
 var usersRef = new Firebase('https://babytrak.firebaseio.com/users');
 var babyRef = new Firebase('https://babytrak.firebaseio.com/babies');
 
-var bt = angular.module("babyTrak", ['firebase','nhUtils','ngRoute','ngResource'])
+var bt = angular.module("babyTrak", ['firebase','nhUtils','ngRoute','ngResource','ngStorage'])
 	.config(['$routeProvider',function($routeProvider) {
 		$routeProvider
 			.when('/',{
 				templateUrl: 'partials/home.html'
 				,selectedHeader: 'home'
-				,controller: 'homePageController'
+				,controller: 'loginPageController'
 			})
 			.when('/feedings',{
 				templateUrl: 'partials/feedings.html'
@@ -26,6 +26,13 @@ var bt = angular.module("babyTrak", ['firebase','nhUtils','ngRoute','ngResource'
 				,controller: 'babyListController'
 			})
 			.otherwise({ redirectTo: '/' })
+	}])
+	.run(['$localStorage',function($localStorage) {
+		if ($localStorage.loggedInUserId) {
+			alert('you have already logged in!');
+		} else {
+			alert('please log in');
+		}
 	}]);
 
 
@@ -230,7 +237,7 @@ bt.provider('$nhLogin',function $nhLoginProvider() {
 	}];
 });
 
-bt.controller('applicationController',['$scope','Auth','$location','FirebaseData',function($scope,Auth,$location,FirebaseData) {
+bt.controller('applicationController',['$scope','Auth','$location','$localStorage','FirebaseData',function($scope,Auth,$location,$localStorage,FirebaseData) {
 	$scope.controllerName = 'applicationController';
 
 	$scope.appTitle = "BabyTrak";
@@ -288,6 +295,9 @@ bt.controller('applicationController',['$scope','Auth','$location','FirebaseData
 			$scope.users.$save();
 			$scope.currentUser = $scope.users[auth.uid];
 
+			$localStorage.loggedInUserId = auth.uid;
+			$localStorage.loggedInUser = $scope.currentUser;
+
 			// Fire callback
 			cb(cur);
 
@@ -337,8 +347,8 @@ bt.controller('applicationController',['$scope','Auth','$location','FirebaseData
 
 }]);
 
-bt.controller('homePageController',['$scope',function($scope) {
-	$scope.controllerName = 'homePageController';
+bt.controller('loginPageController',['$scope',function($scope) {
+	$scope.controllerName = 'loginPageController';
 
 	/*
 	* I facilitate the user login with the Google
