@@ -14,16 +14,14 @@ component extends = "remote.nerdyHippieUtils" {
 	}
 	
 	function onRequestStart() {
-		if (!session.isLoggedIn) {
-			if (cgi.script_name IS "/remote/authentication.cfc") {
-                //WriteOutput('go ahead and log in please');
+		if (!StructKeyExists(session,'isLoggedIn') || !session.isLoggedIn) {
+			if (cgi.script_name IS "/remote/authentication.cfc" AND ListFind('method=isLoggedIn,method=doLogin,method=doLogout',cgi.query_string)) {
+                //WriteDump(cgi)
                 // do nothing, allow it
             } else {
                 setServerStatus(401,"Please log in");
             	abort;
             }
-		} else {
-			WriteOutput('congrats, you are logged in!');
 		}
 	}
 	

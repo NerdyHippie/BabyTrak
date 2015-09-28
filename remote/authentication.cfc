@@ -1,8 +1,5 @@
 component extends = "remote.nerdyHippieUtils" {
 	
-	this.loggedIn = false;
-	this.userData = {};
-	
 	remote function doLogin() returnformat="JSON" {
 		arguments = applyHeaders(arguments);
 		
@@ -22,16 +19,16 @@ component extends = "remote.nerdyHippieUtils" {
 			loginSuccess = true;
 			
 			if (loginSuccess) {
-				this.loggedIn = true;
+				session.isLoggedIn = true;
 	
 				var data = {};
-		        data.id = arguments.username;
-		        data.firstName = 'Johnny';
-		        data.lastName = 'Doe';
+		        data['id'] = arguments.username;
+		        data['firstName'] = 'Josh';
+		        data['lastName'] = 'Orvis';
 		        
-				this.userData = data;
+				session.userData = data;
 				
-				return this.userData;
+				return session.userData;
 			} else {
 				// 401 Unauthorized
 				errorData['errorMessage'] = "Invalid username/password.";
@@ -47,14 +44,22 @@ component extends = "remote.nerdyHippieUtils" {
 	}
 	
 	remote function doLogout() returnformat="JSON" {
-		this.loggedIn = false;
-		this.userData = {};
-		
+		StructClear(session);
 		session.isLoggedIn = false;
 	}
 	
+	remote function isLoggedIn() returnformat="JSON" {
+		var ret = StructNew();
+		ret['loggedIn'] = session.isLoggedIn;
+		return ret;
+	}  
+	
+	remote function getSessionData() returnformat="JSON" {
+		return session;
+	}
+	
 	remote function getUserInfo(userId) returnformat="JSON" {
-		if (this.loggedIn) {
+		if (session.isLoggedIn) {
 			if (StructKeyExists(arguments,'userId') AND Len(arguments.userId)) {
 				var data = {};
 				data['id'] = arguments.userId;
@@ -62,7 +67,7 @@ component extends = "remote.nerdyHippieUtils" {
 				data['lastName'] = 'Doe';
 				
 			} else {
-				var data = this.userData;
+				var data = session.userData;
 			}
 			
 			return data;

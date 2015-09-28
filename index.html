@@ -33,7 +33,7 @@
 		<div class="logo">{{appTitle}}</div>
 
 	</header>
-	<nav ng-controller="navController">
+	<nav ng-controller="navController" ng-if="isLoggedIn">
 		<ul>
 			<li ng-class="isActive('home')"><a href="#/">Home</a></li>
 			<li ng-class="isActive('feedings')"><a href="#/feedings">Feedings</a></li>
@@ -44,6 +44,7 @@
 			<li><a href="#/	" ng-click="logout()">Log out</a></li>
 		</ul>
 	</nav>
+
 	<main ng-view onload="init()">
 
 	</main>

@@ -27,15 +27,26 @@ var bt = angular.module("babyTrak", ['firebase','nhUtils','ngRoute','ngResource'
 			})
 			.otherwise({ redirectTo: '/' })
 	}])
-	.run(['$localStorage','CFauth',function($localStorage,CFauth) {
+	.run(['$rootScope','$localStorage','CFauth',function($rootScope,$localStorage,CFauth) {
+		$rootScope.isLoggedIn = function() {
+			return  ($rootScope.isLoggedIntoCF && $rootScope.isLoggedIntoFirebase) ? true : false;
+		};
+
 		if ($localStorage.loggedInUserId) {
-			if ($localStorage.authToken) {
-				console.log('You have an auth token', $localStorage.authToken);
-			} else {
-				console.log('you have already logged in, but you need an auth token!');
-			}
-		} else {
-			alert('please log in');
+			CFauth.isLoggedIn(function(loggedIn) {
+				if (loggedIn) {
+
+					CFauth.getUserInfo($localStorage.loggedInUserId,function(data) {
+						$localStorage.loggedInUserData = data;
+						$rootScope.currentUser = data;
+						$rootScope.isLoggedIntoCF = true;
+					});
+
+					console.log('Welcome back!', $localStorage.authToken);
+				} else {
+					console.log('you have already logged in, but you need an auth token!');
+				}
+			});
 		}
 	}]);
 
@@ -93,19 +104,12 @@ bt.factory('FirebaseData',['$firebaseObject','$firebaseArray',function($firebase
 	}
 }]);
 
-bt.factory('CFauth',['$resource','$q',function($resource,$q) {
+bt.factory('CFauth',['$resource','$q','$localStorage',function($resource,$q,$localStorage) {
 	var authResource = $resource(
 		'/remote/authentication.cfc'
 		,{}
 		,{
-			getUserInfo: {
-				method: 'GET'
-				,isArray: false
-				,params: {
-					method: 'getUserInfo'
-				}
-			}
-			,doLogin: {
+			doLogin: {
 				method: 'POST'
 				,isArray: false
 				,params: {
@@ -117,6 +121,27 @@ bt.factory('CFauth',['$resource','$q',function($resource,$q) {
 				,isArray: false
 				,params: {
 					method: 'doLogout'
+				}
+			}
+			,isLoggedIn: {
+				method: 'GET'
+				,isArray: false
+				,params: {
+					method: 'isLoggedIn'
+				}
+			}
+			,getSessionData: {
+				method: 'GET'
+				,isArray: false
+				,params: {
+					method: 'getSessionData'
+				}
+			}
+			,getUserInfo: {
+				method: 'GET'
+				,isArray: false
+				,params: {
+					method: 'getUserInfo'
 				}
 			}
 		});
@@ -131,6 +156,8 @@ bt.factory('CFauth',['$resource','$q',function($resource,$q) {
 			authResource.doLogin(loginData,function(data) {
 				d.resolve(data);
 				cb(data);
+				$localStorage.loggedInUserId = data.id;
+				$localStorage.loggedInUserData = data;
 			},function(error) {
 				console.error(error);
 				d.reject(error);
@@ -147,6 +174,24 @@ bt.factory('CFauth',['$resource','$q',function($resource,$q) {
 			authResource.doLogout({},function(data) {
 				d.resolve(data);
 				cb(data);
+				delete $localStorage.loggedInUserId;
+				delete $localStorage.loggedInUserData;
+			},function(error) {
+				console.error(error);
+				d.reject(error);
+				ecb(error);
+			});
+
+			return d.promise;
+		}
+		,isLoggedIn: function(cb,ecb) {
+			cb = cb || angular.noop;
+			ecb = ecb || angular.noop;
+
+			var d = $q.defer();
+			authResource.isLoggedIn({},function(data) {
+				d.resolve(data.loggedIn);
+				cb(data.loggedIn);
 			},function(error) {
 				console.error(error);
 				d.reject(error);
@@ -161,6 +206,23 @@ bt.factory('CFauth',['$resource','$q',function($resource,$q) {
 
 			var d = $q.defer();
 			authResource.getUserInfo({userId:userId},function(data) {
+				d.resolve(data);
+				cb(data);
+			},function(error) {
+				console.error(error);
+				d.reject(error);
+				ecb(error);
+			});
+
+			return d.promise;
+		}
+		,getSessionData: function(data,cb,ecb) {
+			cb = cb || angular.noop;
+			ecb = ecb || angular.noop;
+			data = data || {};
+
+			var d = $q.defer();
+			authResource.getSessionData(data,function(data) {
 				d.resolve(data);
 				cb(data);
 			},function(error) {
@@ -273,7 +335,7 @@ bt.directive('inlineEdit',[function() {
 });*/
 
 
-bt.service('siteUser',['$rootScope',function($rootScope) {
+/*bt.service('siteUser',['$rootScope',function($rootScope) {
 	this.firstName = 'no';
 	this.lastName = 'body';
 
@@ -318,15 +380,15 @@ bt.provider('$nhLogin',function $nhLoginProvider() {
 			}
 		}
 	}];
-});
+});*/
 
-bt.controller('applicationController',['$scope','Auth','$location','$localStorage','FirebaseData',function($scope,Auth,$location,$localStorage,FirebaseData) {
+bt.controller('applicationController',['$scope','$rootScope','Auth','$location','$localStorage','FirebaseData',function($scope,$rootScope,Auth,$location,$localStorage,FirebaseData) {
 	$scope.controllerName = 'applicationController';
 
 	$scope.appTitle = "BabyTrak";
 
 	$scope.currentUser = null;
-	$scope.isLoggedIn = false;
+	//$scope.isLoggedIn = false;
 
 	$scope.authObj = Auth;
 	$scope.users = FirebaseData.getUser();
@@ -337,12 +399,10 @@ bt.controller('applicationController',['$scope','Auth','$location','$localStorag
 	$scope.authObj.$onAuth(function(authData) {
 		if (authData) {
 			//console.log('User is logged in',authData);
-			$scope.isLoggedIn = true;
+			$rootScope.isLoggedIntoFirebase = true;
 			$scope.setupCurrentUser(authData);
 		} else {
-			//console.log('User is logged out');
-			$scope.isLoggedIn = false;
-			$scope.logout();
+			$rootScope.isLoggedIntoFirebase = false;
 		}
 	});
 
@@ -379,7 +439,7 @@ bt.controller('applicationController',['$scope','Auth','$location','$localStorag
 			$scope.currentUser = $scope.users[auth.uid];
 
 			$localStorage.loggedInUserId = auth.uid;
-			$localStorage.loggedInUser = $scope.currentUser;
+			$localStorage.loggedInUserData = $scope.currentUser;
 
 			// Fire callback
 			cb(cur);
@@ -404,6 +464,7 @@ bt.controller('applicationController',['$scope','Auth','$location','$localStorag
 		$scope.clearCurrentUser();
 		$scope.authObj.$unauth();
 		$location.path('#/');
+		$rootScope.$broadcast('event:logout');
 	};
 
 	/*
@@ -430,7 +491,7 @@ bt.controller('applicationController',['$scope','Auth','$location','$localStorag
 
 }]);
 
-bt.controller('loginPageController',['$scope','CFauth',function($scope,CFauth) {
+bt.controller('loginPageController',['$scope','$rootScope','CFauth',function($scope,$rootScope,CFauth) {
 	$scope.controllerName = 'loginPageController';
 
 	/*
@@ -451,6 +512,11 @@ bt.controller('loginPageController',['$scope','CFauth',function($scope,CFauth) {
 		}
 	};
 
+	$scope.getSessionData = function() {
+		CFauth.getSessionData({},function(data) {
+			console.log('CF Session Scope',data);
+		})
+	};
 
 	/*  Deprecated below this line */
 	$scope.getAuthState = function() {
@@ -460,9 +526,9 @@ bt.controller('loginPageController',['$scope','CFauth',function($scope,CFauth) {
 	};
 
 	$scope.doLogin = function(loginData) {
-		console.log('loginData',loginData);
 		CFauth.doLogin(loginData,function(data) {
-
+			$rootScope.isLoggedIntoCF = true;
+			$scope.currentUser = data;
 		},function(error) {
 			$scope.errorData = error.data;
 		})
@@ -470,19 +536,30 @@ bt.controller('loginPageController',['$scope','CFauth',function($scope,CFauth) {
 
 	$scope.doLogout = function() {
 		console.log('logging out');
-		CFauth.doLogout({},function(data) {
+		CFauth.doLogout(function(data) {
+			$rootScope.isLoggedIntoCF = false;
 			console.log("You have been logged out.");
 		},function(error) {
 			console.log('An error occurred logging out',error);
 		})
 	};
 
+	$scope.isCfLoggedIn = function() {
+		CFauth.isLoggedIn(function(data) {
+			$rootScope.isLoggedIntoCF = data;
+			console.log('isLoggedIn?',data);
+		});
+	};
 
 	$scope.getUserInfo = function(userId) {
 		CFauth.getUserInfo(userId,function(data) {
 			console.log('data back from getUserInfo',data);
 		});
 	}
+
+	$scope.$on('event:logout',function(evt,args) {
+		$scope.doLogout();
+	})
 }]);
 
 
@@ -498,6 +575,8 @@ bt.controller('feedingController',['$scope',function($scope) {
 
 bt.controller('userListController',['$scope','FirebaseData',function($scope,FirebaseData) {
 	$scope.controllerName = "userListController";
+
+	$scope.requireLogin();
 
 	$scope.viewSettings = {
 		page: 'list'
