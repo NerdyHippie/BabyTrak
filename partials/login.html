@@ -1,0 +1,43 @@
+<h1>Home</h1>
+<p>Logged in? {{isLoggedIn}}</p>
+
+<button ng-click="getAuthState()">getAuthState</button>
+
+<div id="form-login" ng-show="!isLoggedIn">
+	<div>
+		<input type="text" ng-model="loginForm.username" placeholder="Username" />
+
+		<div class="alert alert-error" ng-show="errorData.username">{{errorData.username}}</div>
+	</div>
+	<div>
+		<input type="password" ng-model="loginForm.password" placeholder="Password" />
+
+		<div class="alert alert-error" ng-show="errorData.password">{{errorData.password}}</div>
+	</div>
+	<div>
+		<div class="alert alert-error" ng-show="errorData.errorMessage">{{errorData.errorMessage}}</div>
+
+		<button ng-click="doLogin(loginForm)">Log In</button>
+		&nbsp;&nbsp;&nbsp;
+		<button ng-click="loginWithProvider('google')">Sign in with Google</button>
+	</div>
+
+</div>
+
+<div ng-show="isLoggedIn">
+	<h2>You are logged in as </h2>
+
+	<button ng-click="getUserInfo()">Get User Info</button>
+
+	<div class="debug-block">
+		CurrentUser
+		<pre>{{currentUser | json}}</pre>
+	</div>
+
+	<div class="debug-block">
+		authData
+		<pre>{{authData | jsonFull}}</pre>
+	</div>
+
+</div>
+

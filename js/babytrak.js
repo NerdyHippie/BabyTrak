@@ -6,7 +6,7 @@ var bt = angular.module("babyTrak", ['firebase','nhUtils','ngRoute','ngResource'
 	.config(['$routeProvider',function($routeProvider) {
 		$routeProvider
 			.when('/',{
-				templateUrl: 'partials/home.html'
+				templateUrl: 'partials/login.html'
 				,selectedHeader: 'home'
 				,controller: 'loginPageController'
 			})
@@ -27,9 +27,13 @@ var bt = angular.module("babyTrak", ['firebase','nhUtils','ngRoute','ngResource'
 			})
 			.otherwise({ redirectTo: '/' })
 	}])
-	.run(['$localStorage',function($localStorage) {
+	.run(['$localStorage','CFauth',function($localStorage,CFauth) {
 		if ($localStorage.loggedInUserId) {
-			alert('you have already logged in!');
+			if ($localStorage.authToken) {
+				console.log('You have an auth token', $localStorage.authToken);
+			} else {
+				console.log('you have already logged in, but you need an auth token!');
+			}
 		} else {
 			alert('please log in');
 		}
@@ -89,7 +93,86 @@ bt.factory('FirebaseData',['$firebaseObject','$firebaseArray',function($firebase
 	}
 }]);
 
+bt.factory('CFauth',['$resource','$q',function($resource,$q) {
+	var authResource = $resource(
+		'/remote/authentication.cfc'
+		,{}
+		,{
+			getUserInfo: {
+				method: 'GET'
+				,isArray: false
+				,params: {
+					method: 'getUserInfo'
+				}
+			}
+			,doLogin: {
+				method: 'POST'
+				,isArray: false
+				,params: {
+					method: 'doLogin'
+				}
+			}
+			,doLogout: {
+				method: 'POST'
+				,isArray: false
+				,params: {
+					method: 'doLogout'
+				}
+			}
+		});
 
+	return {
+		loggedIn: false
+		,doLogin: function(loginData,cb,ecb) {
+			cb = cb || angular.noop;
+			ecb = ecb || angular.noop;
+
+			var d = $q.defer();
+			authResource.doLogin(loginData,function(data) {
+				d.resolve(data);
+				cb(data);
+			},function(error) {
+				console.error(error);
+				d.reject(error);
+				ecb(error);
+			});
+
+			return d.promise;
+		}
+		,doLogout: function(cb,ecb) {
+			cb = cb || angular.noop;
+			ecb = ecb || angular.noop;
+
+			var d = $q.defer();
+			authResource.doLogout({},function(data) {
+				d.resolve(data);
+				cb(data);
+			},function(error) {
+				console.error(error);
+				d.reject(error);
+				ecb(error);
+			});
+
+			return d.promise;
+		}
+		,getUserInfo: function(userId,cb,ecb) {
+			cb = cb || angular.noop;
+			ecb = ecb || angular.noop;
+
+			var d = $q.defer();
+			authResource.getUserInfo({userId:userId},function(data) {
+				d.resolve(data);
+				cb(data);
+			},function(error) {
+				console.error(error);
+				d.reject(error);
+				ecb(error);
+			});
+
+			return d.promise;
+		}
+	};
+}]);
 
 bt.controller('navController',['$scope','$route',function($scope,$route) {
 	$scope.isActive = function(item) {
@@ -347,7 +430,7 @@ bt.controller('applicationController',['$scope','Auth','$location','$localStorag
 
 }]);
 
-bt.controller('loginPageController',['$scope',function($scope) {
+bt.controller('loginPageController',['$scope','CFauth',function($scope,CFauth) {
 	$scope.controllerName = 'loginPageController';
 
 	/*
@@ -374,6 +457,31 @@ bt.controller('loginPageController',['$scope',function($scope) {
 		var authData = $scope.authObj.$getAuth();
 		 if (authData) $scope.setupCurrentUser(authData);
 		console.log('from getAuthState',authData);
+	};
+
+	$scope.doLogin = function(loginData) {
+		console.log('loginData',loginData);
+		CFauth.doLogin(loginData,function(data) {
+
+		},function(error) {
+			$scope.errorData = error.data;
+		})
+	};
+
+	$scope.doLogout = function() {
+		console.log('logging out');
+		CFauth.doLogout({},function(data) {
+			console.log("You have been logged out.");
+		},function(error) {
+			console.log('An error occurred logging out',error);
+		})
+	};
+
+
+	$scope.getUserInfo = function(userId) {
+		CFauth.getUserInfo(userId,function(data) {
+			console.log('data back from getUserInfo',data);
+		});
 	}
 }]);
 
