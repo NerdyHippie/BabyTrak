@@ -45,7 +45,11 @@
 		</ul>
 	</nav>
 
-	<main ng-view onload="init()">
+	<main ng-controller="loginPageController" ng-show="!isLoggedIn">
+		<ng-include src="'partials/login.html'"></ng-include> <!-- onload="init(pfJob.summaryData.id)" -->
+	</main>
+
+	<main ng-view onload="init()" ng-if="isLoggedIn">
 
 	</main>
 	<footer>

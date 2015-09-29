@@ -1,5 +1,5 @@
-<h1>Home</h1>
-<p>Logged in? {{isLoggedIn()}}</p>
+
+<p>Logged in? {{isLoggedIn}}</p>
 <p>Logged into CF? {{isLoggedIntoCF}}</p>
 <p>Logged into FB? {{isLoggedIntoFirebase}}</p>
 
@@ -9,7 +9,7 @@
 
 <button ng-click="getSessionData()">getSessionData</button>
 
-<div id="form-login" ng-show="!isLoggedIn()">
+<div id="form-login" ng-show="!isLoggedIn">
 	<div>
 		<input type="text" ng-model="loginForm.username" placeholder="Username" />
 
@@ -23,14 +23,14 @@
 	<div>
 		<div class="alert alert-error" ng-show="errorData.errorMessage">{{errorData.errorMessage}}</div>
 
-		<button ng-click="doLogin(loginForm)">Log In</button>
+		<button ng-click="doDualLogin(loginForm)">Log In</button>
 		&nbsp;&nbsp;&nbsp;
 		<button ng-click="loginWithProvider('google')">Sign in with Google</button>
 	</div>
 
 </div>
 
-<div ng-show="isLoggedIn()">
+<div ng-show="isLoggedIn">
 	<h2>You are logged in as </h2>
 
 	<button ng-click="getUserInfo()">Get User Info</button>

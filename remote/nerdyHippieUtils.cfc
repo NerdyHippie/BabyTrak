@@ -13,7 +13,7 @@ component {
 		} else if (isSimpleValue(arguments.error)) {
 			errorMsg = arguments.error;
 		}
-
+		WriteOutput(error);
 		setServerStatus(500,errorMsg);
 	}
 

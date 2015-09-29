@@ -6,9 +6,9 @@ var bt = angular.module("babyTrak", ['firebase','nhUtils','ngRoute','ngResource'
 	.config(['$routeProvider',function($routeProvider) {
 		$routeProvider
 			.when('/',{
-				templateUrl: 'partials/login.html'
+				templateUrl: 'partials/home.html'
 				,selectedHeader: 'home'
-				,controller: 'loginPageController'
+				//,controller: 'loginPageController'
 			})
 			.when('/feedings',{
 				templateUrl: 'partials/feedings.html'
@@ -28,17 +28,16 @@ var bt = angular.module("babyTrak", ['firebase','nhUtils','ngRoute','ngResource'
 			.otherwise({ redirectTo: '/' })
 	}])
 	.run(['$rootScope','$localStorage','CFauth',function($rootScope,$localStorage,CFauth) {
-		$rootScope.isLoggedIn = function() {
-			return  ($rootScope.isLoggedIntoCF && $rootScope.isLoggedIntoFirebase) ? true : false;
-		};
+		$rootScope.isLoggedIn = false;
 
 		if ($localStorage.loggedInUserId) {
 			CFauth.isLoggedIn(function(loggedIn) {
+				console.log('CF auth says logged in = %o',loggedIn);
 				if (loggedIn) {
 
 					CFauth.getUserInfo($localStorage.loggedInUserId,function(data) {
 						$localStorage.loggedInUserData = data;
-						$rootScope.currentUser = data;
+						//$rootScope.currentUser = data;
 						$rootScope.isLoggedIntoCF = true;
 					});
 
@@ -50,10 +49,72 @@ var bt = angular.module("babyTrak", ['firebase','nhUtils','ngRoute','ngResource'
 		}
 	}]);
 
+bt.service('jwtService',['$q','$resource',function($q,$resource) {
+	var jwtResource = $resource(
+		'/remote/JWTwrapper.cfc'
+		,{}
+		,{
+			getToken: {
+				method: 'POST'
+				,isArray: false
+				,params: {
+					method: 'getToken'
+				}
+			},
+			decodeToken: {
+				method: 'GET'
+				,isArray: false
+				,params: {
+					method: 'decodeToken'
+				}
+			}
+		}
+	);
 
+	this.getToken = function(cb,ecb) {
+		cb = cb || angular.noop;
+		ecb = ecb || angular.noop;
 
+		var d = $q.defer();
 
-bt.factory('Auth',['$firebaseAuth',function($firebaseAuth) {
+		jwtResource.getToken(
+			{}
+			,function(data) {
+				d.resolve(data);
+				cb(data);
+			}
+			,function(error) {
+				d.reject(error);
+				ecb(error);
+			}
+		);
+
+		return d.promise
+	};
+
+	this.decodeToken = function(token,cb,ecb) {
+		cb = cb || angular.noop;
+		ecb = ecb || angular.noop;
+
+		var d = $q.defer();
+
+		jwtResource.decodeToken(
+			{token:token}
+			,function(data) {
+				d.resolve(data);
+				cb(data);
+			}
+			,function(error) {
+				d.reject(error);
+				ecb(error);
+			}
+		);
+
+		return d.promise
+	}
+}]);
+
+bt.factory('FirebaseAuth',['$firebaseAuth',function($firebaseAuth) {
 	return $firebaseAuth(ref);
 }]);
 
@@ -103,6 +164,8 @@ bt.factory('FirebaseData',['$firebaseObject','$firebaseArray',function($firebase
 
 	}
 }]);
+
+
 
 bt.factory('CFauth',['$resource','$q','$localStorage',function($resource,$q,$localStorage) {
 	var authResource = $resource(
@@ -236,7 +299,7 @@ bt.factory('CFauth',['$resource','$q','$localStorage',function($resource,$q,$loc
 	};
 }]);
 
-bt.controller('navController',['$scope','$route',function($scope,$route) {
+bt.controller('navController',['$scope','$rootScope','$route',function($scope,$rootScope,$route) {
 	$scope.isActive = function(item) {
 		var header = 'home';
 
@@ -246,6 +309,10 @@ bt.controller('navController',['$scope','$route',function($scope,$route) {
 		return {
 			active:item === header
 		};
+	};
+
+	$scope.logout = function() {
+		$rootScope.$broadcast('event:logout');
 	}
 }]);
 
@@ -281,200 +348,16 @@ bt.directive('inlineEdit',[function() {
 }]);
 
 
-/*bt.provider('$nhmodal',function() {
-	var $nhmodalProvider = {
-		options: {
-			animation: true
-			,backdrop: true
-			,keyboard: true
-		}
-		,$get: ['$injector','$rootScope','$q','$templateRequest','$controller',function($injector,$rootScope,$q,$templateRequest,$controller) {
-			var $nhmodal = {};
 
-			function getTemplatePromise(options) {
-				if (options.template) {
-					console.log('in getTemplatePromise, using q.when');
-					return $q.when(options.template);
-				} else {
-					console.log('in getTemplatePromise, using templateRequest');
-					$templateRequest(angular.isFunction(options.templateUrl) ? (options.templateUrl)() : options.templateUrl);
-				}
-			}
-
-			function getResolvePromises(resolves) {
-				console.log('in getResolvePromises',resolves)
-				var promisesArr = [];
-				angular.forEach(resolves,function(value) {
-					if (angular.isFunction(value) || angular.isArray(value)) {
-						console.log('in getResolvePromises, value is either function or array')
-						promisesArr.push($q.when($injector.invoke(value)));
-					} else if (angular.isString(value)) {
-						console.log('in getResolvePromises, value is string');
-						promisesArr.push($q.when($injector.get(value)));
-					} else {
-						console.log('in getResolvePromises, value is "other"');
-						promisesArr.push($q.when(value));
-					}
-				});
-				return promisesArr;
-			}
-
-			var promiseChain = null;
-			$nhmodal.getPromiseChain = function() {
-				return promiseChain;
-			};
-
-			$nhmodal.open = function(modalOptions) {
-				var modalResultDeferred = $q.defer();
-				var modalOpenedDeferred = $q.defer();
-				var modalRenderDeferred = $q.defer();
-
-			};
-		}]
-	}
-});*/
-
-
-/*bt.service('siteUser',['$rootScope',function($rootScope) {
-	this.firstName = 'no';
-	this.lastName = 'body';
-
-	this.getFullName = function() {
-		return this.firstName + ' ' + this.lastName;
-	}
-}]);
-
-bt.provider('$nhLogin',function $nhLoginProvider() {
-	var options = {
-		firebaseInstance: 'default'
-	};
-	this.setFirebaseInstance = function(value) {
-		console.log('setting firebaseInstance to %o',value);
-		options.firebaseInstance = !!value;
-	};
-
-	this.$get = ['$rootScope','siteUser',function($rootScope,siteUser) {
-		return {
-			showLogin: function() {
-				console.log('show the login form');
-			}
-			,logout: function() {
-				console.log('log out');
-			}
-			,getLoginState: function() {
-				if (!$rootScope.isLoggedIn) $rootScope.isLoggedIn = false;
-				return $rootScope.isLoggedIn;
-			}
-			,getUser: function() {
-				return $rootScope.currentUser;
-			}
-			,setUser: function(userData) {
-				var usr = siteUser;
-				for (var key in userData) {
-					if (userData.hasOwnProperty(key)) usr[key] = userData[key];
-				}
-				$rootScope.currentUser = usr;
-			}
-			,getFirebaseInstance: function() {
-				return options.firebaseInstance;
-			}
-		}
-	}];
-});*/
-
-bt.controller('applicationController',['$scope','$rootScope','Auth','$location','$localStorage','FirebaseData',function($scope,$rootScope,Auth,$location,$localStorage,FirebaseData) {
+bt.controller('applicationController',['$scope','$rootScope','FirebaseData',function($scope,$rootScope,FirebaseData) {
 	$scope.controllerName = 'applicationController';
 
 	$scope.appTitle = "BabyTrak";
 
 	$scope.currentUser = null;
-	//$scope.isLoggedIn = false;
 
-	$scope.authObj = Auth;
 	$scope.users = FirebaseData.getUser();
 
-	/*
-	* I am basically an event listener that response to changes in the auth object.  I provide a single, asynchronous place to put user-login logic.
-	*/
-	$scope.authObj.$onAuth(function(authData) {
-		if (authData) {
-			//console.log('User is logged in',authData);
-			$rootScope.isLoggedIntoFirebase = true;
-			$scope.setupCurrentUser(authData);
-		} else {
-			$rootScope.isLoggedIntoFirebase = false;
-		}
-	});
-
-	/*
-	* I digest the auth data, create a user object from it and add it to the list of users.
-	* When done, I persist the user list so that any new/changed data gets saved.
-	*/
-	$scope.setupCurrentUser = function(authData,cb,ecb) {
-		cb = cb || angular.noop;
-		ecb = ecb || angular.noop;
-
-		try {
-			console.log('firing setupCurrentUser with data',authData);
-
-			var auth = authData.auth;
-			var userData = authData[auth.provider];
-
-			var cur = {};
-			cur.email = userData.email || '';
-			cur.displayName = userData.displayName || '';
-
-			switch(auth.provider) {
-				case "google":
-					cur.firstName = userData.cachedUserProfile.given_name || '';
-					cur.lastName = userData.cachedUserProfile.family_name || '';
-					cur.thumbnail = userData.cachedUserProfile.picture || '';
-					break;
-			}
-
-			// Update $scope.users and set $scope.currentUser
-			$scope.users[auth.uid] = cur;
-			$scope.users[auth.uid].userId = auth.uid;
-			$scope.users.$save();
-			$scope.currentUser = $scope.users[auth.uid];
-
-			$localStorage.loggedInUserId = auth.uid;
-			$localStorage.loggedInUserData = $scope.currentUser;
-
-			// Fire callback
-			cb(cur);
-
-		} catch(e) {
-			alert('An error has occurred');
-			console.log('errorDump',e,authData);
-		}
-	};
-
-	/*
-	* I remove the current user object
-	*/
-	$scope.clearCurrentUser = function() {
-		$scope.currentUser = null;
-	};
-
-	/*
-	* I log a user out and return them to the home page
-	*/
-	$scope.logout = function() {
-		$scope.clearCurrentUser();
-		$scope.authObj.$unauth();
-		$location.path('#/');
-		$rootScope.$broadcast('event:logout');
-	};
-
-	/*
-	* I make sure the user is logged in.  If not, I boot them to the home page
-	*/
-	$scope.requireLogin = function() {
-		if (!$scope.isLoggedIn) {
-			$location.path('/');
-		}
-	};
 
 	/*
 	* I am a helper function that converts string dates into Date objects.
@@ -491,11 +374,13 @@ bt.controller('applicationController',['$scope','$rootScope','Auth','$location',
 
 }]);
 
-bt.controller('loginPageController',['$scope','$rootScope','CFauth',function($scope,$rootScope,CFauth) {
+bt.controller('loginPageController',['$scope','$rootScope','$localStorage','CFauth','jwtService','FirebaseAuth','FirebaseData',function($scope,$rootScope,$localStorage,CFauth,jwtService,FirebaseAuth,FirebaseData) {
 	$scope.controllerName = 'loginPageController';
 
+	$scope.authObj = FirebaseAuth;
+
 	/*
-	* I facilitate the user login with the Google
+	* I facilitate the user login with Social Media providers
 	*/
 	$scope.loginWithProvider = function (provider) {
 		switch(provider) {
@@ -507,10 +392,163 @@ bt.controller('loginPageController',['$scope','$rootScope','CFauth',function($sc
 					console.log('Login error',error);
 				});
 				break;
+			case "babyTrak":
+
+				break;
 			default:
 				alert("Error - no provider specified");
 		}
 	};
+
+	/*
+	* I take the auth data that comes back from a successful Firebase login and convert it to a standaradized user object that goes into the $rootScope
+	 */
+	$scope.setupCurrentUser = function(authData,cb,ecb) {
+		cb = cb || angular.noop;
+		ecb = ecb || angular.noop;
+
+		try {
+			console.log('firing setupCurrentUser with data',authData);
+
+			var auth = authData.auth;
+
+			var usrObj = {};
+
+			switch(authData.provider) {
+				case "google":
+					var userData = authData[auth.provider];
+					usrObj.email 			= userData.email || '';
+					usrObj.firstName 		= userData.cachedUserProfile.given_name || '';
+					usrObj.lastName 		= userData.cachedUserProfile.family_name || '';
+					usrObj.thumbnail 		= userData.cachedUserProfile.picture || '';
+					usrObj.displayName 		= userData.displayName || '';
+					break;
+				case "custom":
+					usrObj.email 			= auth.email || '';
+					usrObj.firstName 		= auth.firstName || '';
+					usrObj.lastName 		= auth.lastName || '';
+					usrObj.thumbnail 		= auth.thumbnail || '';
+					usrObj.displayName 		= auth.firstName + ' ' + auth.lastName;
+					break;
+			}
+
+			// Update $scope.users and set $scope.currentUser
+			var usr = FirebaseData.getUser(auth.uid);
+			for (var key in usrObj) {
+				usr[key] = usrObj[key];
+			}
+			usr.userId = auth.uid;
+			usr.$save();
+			$scope.currentUser = usr;
+
+			$localStorage.loggedInUserId = auth.uid;
+			$localStorage.loggedInUserData = $scope.currentUser;
+
+			// Fire callback
+			cb(usr);
+
+		} catch(e) {
+			alert('An error has occurred in setupCurrentUser');
+			console.log('errorDump',e,authData);
+		}
+	};
+
+	/*
+	* I kick off the CF-Firebase dual login process.  I expect an object containing two keys: username and password
+	 */
+	$scope.doDualLogin = function(loginData) {
+		// Do the CF login first
+		CFauth.doLogin(loginData,function(data) {
+			// Throw a flag to declare CF login was successful
+			$rootScope.isLoggedIntoCF = true;
+			//$scope.currentUser = data;
+
+			// Kick off the firebase login process
+			$scope.firebaseLogin();
+		},function(error) {
+			alert('error logging into CF');
+			console.error(error);
+			$scope.errorData = error.data;
+		})
+	};
+
+	/*
+	* I handle getting a JWT and initiate the Firebase login
+	 */
+	$scope.firebaseLogin = function() {
+		jwtService.getToken(function(data) {
+			//console.log('token from getToken',data);
+			$scope.authObj.$authWithCustomToken(data.token);
+		},function(error) {
+			console.error('an error occurred getting a token',error);
+		});
+	};
+
+	/*
+	* I handle the logout
+	 */
+	$scope.doLogout = function() {
+		//console.log('logging out');
+
+		// Log out of CF first
+		CFauth.doLogout(function(data) {
+			$rootScope.isLoggedIntoCF = false;
+
+			// Trigger the Firebase logout
+			$scope.authObj.$unauth();
+
+			//console.log("You have been logged out.");
+		},function(error) {
+			console.log('An error occurred logging out',error);
+		})
+	};
+
+	/*
+	* I ask the CF server if we're currently logged in
+	 */
+	$scope.isCfLoggedIn = function() {
+		CFauth.isLoggedIn(function(data) {
+			$rootScope.isLoggedIntoCF = data;
+			//console.log('isCfLoggedIn?',data);
+		});
+	};
+
+	/*
+	* I get User info from the CF server.  My userId parameter is optional; if it is omitted I will return data for the currently logged in user
+	 */
+	$scope.getUserInfo = function(userId) {
+		CFauth.getUserInfo(userId,function(data) {
+			console.log('data back from getUserInfo',data);
+		});
+	};
+
+	/*
+	* I am an event listener that will trigger a logout
+	 */
+	$scope.$on('event:logout',function(evt,args) {
+		$scope.doLogout();
+	});
+
+	/*
+	* I am an event listenter that watches for login state changes in Firebase.  When a user is logged in, I kick off the creation of the user's data object in the $rootScope
+	 */
+	$scope.authObj.$onAuth(function(authData) {
+		if (authData) {
+			//console.log('User is logged in',authData);
+			$rootScope.isLoggedIntoFirebase = true;
+			$scope.setupCurrentUser(authData);
+			/*$scope.currUserId = authData.uid;*/
+			$rootScope.isLoggedIn = true;
+		} else {
+			$rootScope.isLoggedIntoFirebase = false;
+			$rootScope.isLoggedIn = false;
+		}
+	});
+
+
+
+
+
 
 	$scope.getSessionData = function() {
 		CFauth.getSessionData({},function(data) {
@@ -518,48 +556,13 @@ bt.controller('loginPageController',['$scope','$rootScope','CFauth',function($sc
 		})
 	};
 
-	/*  Deprecated below this line */
 	$scope.getAuthState = function() {
 		var authData = $scope.authObj.$getAuth();
-		 if (authData) $scope.setupCurrentUser(authData);
+		if (authData) $scope.setupCurrentUser(authData);
 		console.log('from getAuthState',authData);
 	};
 
-	$scope.doLogin = function(loginData) {
-		CFauth.doLogin(loginData,function(data) {
-			$rootScope.isLoggedIntoCF = true;
-			$scope.currentUser = data;
-		},function(error) {
-			$scope.errorData = error.data;
-		})
-	};
 
-	$scope.doLogout = function() {
-		console.log('logging out');
-		CFauth.doLogout(function(data) {
-			$rootScope.isLoggedIntoCF = false;
-			console.log("You have been logged out.");
-		},function(error) {
-			console.log('An error occurred logging out',error);
-		})
-	};
-
-	$scope.isCfLoggedIn = function() {
-		CFauth.isLoggedIn(function(data) {
-			$rootScope.isLoggedIntoCF = data;
-			console.log('isLoggedIn?',data);
-		});
-	};
-
-	$scope.getUserInfo = function(userId) {
-		CFauth.getUserInfo(userId,function(data) {
-			console.log('data back from getUserInfo',data);
-		});
-	}
-
-	$scope.$on('event:logout',function(evt,args) {
-		$scope.doLogout();
-	})
 }]);
 
 
