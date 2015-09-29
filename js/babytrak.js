@@ -354,8 +354,6 @@ bt.controller('applicationController',['$scope','$rootScope','FirebaseData',func
 
 	$scope.appTitle = "BabyTrak";
 
-	$scope.currentUser = null;
-
 	$scope.users = FirebaseData.getUser();
 
 
@@ -439,10 +437,10 @@ bt.controller('loginPageController',['$scope','$rootScope','$localStorage','CFau
 			}
 			usr.userId = auth.uid;
 			usr.$save();
-			$scope.currentUser = usr;
+			$rootScope.currentUser = usr;
 
 			$localStorage.loggedInUserId = auth.uid;
-			$localStorage.loggedInUserData = $scope.currentUser;
+			$localStorage.loggedInUserData = usrObj;
 
 			// Fire callback
 			cb(usr);
@@ -572,14 +570,12 @@ bt.controller('feedingController',['$scope',function($scope) {
 	$scope.controllerName = 'feedController';
 
 	$scope.init = function() {
-		$scope.requireLogin();
+
 	};
 }]);
 
 bt.controller('userListController',['$scope','FirebaseData',function($scope,FirebaseData) {
 	$scope.controllerName = "userListController";
-
-	$scope.requireLogin();
 
 	$scope.viewSettings = {
 		page: 'list'
@@ -612,8 +608,6 @@ bt.controller('babyListController',['$scope','$location','$firebaseArray','Fireb
 	$scope.controllerName = 'babyListController';
 
 	$scope.init = function() {
-		$scope.requireLogin();
-
 		$scope.babies = FirebaseData.getBaby();
 	};
 
